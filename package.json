@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@dataconnect/generated": "file:src/dataconnect-generated",
+    "three": "^0.181.0"
+  },
+  "devDependencies": {
+    "vite": "^7.2.1"
+  }
+}

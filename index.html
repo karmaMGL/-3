@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Raining Words — Glow</title>
+		<style>
+			/* Reset + dark background */
+			html,body{height:100%;margin:0}
+			body{
+				background: radial-gradient(ellipse at center, #0b0b0d 0%, #050506 60%, #000000 100%);
+				color:#fff;overflow:hidden;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
+				display:flex;align-items:center;justify-content:center;
+			}
+
+			/* container holds the falling items */
+			.rain-container{
+			position:relative;width:100%;height:100%;pointer-events:none;will-change:transform;touch-action:pan-y;
+			}
+
+			.drop{
+				position:absolute;left:50%;top:-5%;transform:translateX(-50%);
+				white-space:nowrap;font-weight:700;font-size:20px;line-height:1;
+				text-shadow:0 0 6px rgba(255,255,255,0.06), 0 0 18px rgba(0,200,255,0.03);
+				opacity:0;filter:drop-shadow(0 0 12px rgba(0,200,255,0.12));
+			}
+
+			/* image drop styling */
+			.drop-image img{display:block;width:36px;height:auto;pointer-events:none;filter:drop-shadow(0 0 14px rgba(255,255,255,0.08));}
+
+			/* glowing style variants */
+			.glow-1{color:#9be7ff;text-shadow:0 0 6px #49d6ff,0 0 18px #1b9fff}
+			.glow-2{color:#ffd6f0;text-shadow:0 0 6px #ff9ad1,0 0 18px #ff5bb3}
+			.glow-3{color:#d0ffb8;text-shadow:0 0 6px #9cff73,0 0 20px #64ff2b}
+
+			/* subtle vignette to emphasize darkness */
+			.vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%, rgba(0,0,0,0.6) 100%)}
+
+			/* small on-screen UI note */
+			.note{position:fixed;left:16px;bottom:14px;color:#7a7a7a;font-size:13px;pointer-events:auto}
+		</style>
+	</head>
+	<body>
+		<div class="rain-container" id="rain"></div>
+		<div class="vignette"></div>
+		<div class="note">Raining words • emojis • click or move mouse to add light</div>
+
+		<script>
+			// Lightweight raining words + emojis with glow. Responsive and performant.
+			// custom words, nicknames and cute phrases
+			const words = [
+				'Javzaa💗', 'wookiey dookiey✨', 'bunny🐰', 'gunj👸', 'wookiey💗', 'dookiey💗', 'cutie', 'sweetie', 'floof', 'snuggle',
+				'Baby girl', '✨Gunjee', 'cutie', 'rain', 'glow', 'spark', '😚', '🫧', '💗'
+			];
+
+			// small inline SVG images (data URLs) to use as occasional image drops
+			const images = [
+				// simple heart
+				'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24"><path fill="%23ff6b9a" d="M12 21s-7-4.44-9-7.35C-0.09 10.44 3 6 6.5 6 8.24 6 9.5 7 10 8c.5-1 1.76-2 3.5-2C17 6 20.09 10.44 21 13.65 19 16.56 12 21 12 21z"/></svg>'),
+				// small bunny face
+				'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24"><g fill="%23fff"><path d="M7 3c-.55 0-1 .45-1 1v3h2V4c0-.55-.45-1-1-1zM18 3c-.55 0-1 .45-1 1v3h2V4c0-.55-.45-1-1-1z" fill="%23fff"/><circle cx="9.5" cy="13" r="1.25" fill="%23000"/><circle cx="14.5" cy="13" r="1.25" fill="%23000"/><path d="M12 17c-1.5 0-2.5-1.5-2.5-3h5c0 1.5-1 3-2.5 3z" fill="%23ffb6c1"/></g></svg>')
+			];
+
+			// helper to ensure numeric size for images
+			function pickSize(opts){ return (opts && opts.size) || rand(18,44); }
+
+			const container = document.getElementById('rain');
+			const maxDrops = 60; // keep low for performance
+
+			// generate initial drops
+			const drops = [];
+
+			function rand(min, max){ return Math.random() * (max - min) + min }
+
+			function createDrop(i, opts = {}){
+				// opts: {type:'text'|'image', text, img}
+				const type = opts.type || 'text';
+				const el = document.createElement('div');
+				el.className = 'drop';
+				el.classList.add('glow-' + (1 + Math.floor(Math.random()*3)));
+				el.style.left = (opts.left !== undefined ? opts.left : rand(0,100)) + '%';
+				el.style.fontSize = (opts.size || rand(14, 36)) + 'px';
+				el.style.opacity = 0;
+
+				if(type === 'image'){
+					const src = opts.img || images[Math.floor(Math.random()*images.length)];
+					el.innerHTML = `<img src="${src}" alt="img"/>`;
+					el.classList.add('drop-image');
+					// size image element explicitly
+					const img = el.querySelector('img');
+					const s = pickSize(opts);
+					img.style.width = s + 'px';
+					img.style.height = 'auto';
+					el.style.width = img.style.width;
+					el.style.height = img.style.height;
+				} else {
+					const text = opts.text || words[Math.floor(Math.random()*words.length)];
+					el.textContent = text;
+				}
+
+				// animation parameters
+				const duration = rand(3500, 9000);
+				const delay = rand(0, 3000);
+				const tilt = rand(-25,25);
+				const xDrift = rand(-30,30);
+
+				el.animate([
+					{ transform: `translate3d(${xDrift}px, -10vh, 0) rotate(${tilt}deg)`, opacity: 0 },
+					{ transform: `translate3d(${xDrift/2}px, 40vh, 0) rotate(${tilt/2}deg)`, opacity: 1 },
+					{ transform: `translate3d(${xDrift}px, 110vh, 0) rotate(${tilt/4}deg)`, opacity: 0 }
+				], { duration, delay, iterations: Infinity, easing: 'cubic-bezier(.2,.8,.2,1)' });
+
+				// slight glow pulse
+				el.animate([
+					{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.04))' },
+					{ filter: 'drop-shadow(0 0 18px rgba(255,255,255,0.12))' },
+					{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.04))' }
+				], { duration: rand(2000,4000), delay, iterations: Infinity });
+
+				container.appendChild(el);
+
+				drops.push(el);
+			}
+
+			for(let i=0;i<maxDrops;i++) createDrop(i);
+
+			// spawn a few initial image drops so you see images immediately
+			for(let i=0;i<6;i++){
+				if(Math.random() < 0.7) createDrop(null, { type: 'image', size: rand(20,44), left: rand(5,95) });
+			}
+
+			// occasionally create image drops and more personalized Javzaa drops
+			setInterval(()=>{
+				// spawn an image drop (raise chance slightly)
+				if(Math.random() < 0.22) createDrop(null, { type: 'image', size: rand(18,44) });
+				// spawn a Javzaa / nicknames drop occasionally
+				if(Math.random() < 0.2) createDrop(null, { text: Math.random() < 0.5 ? 'Javzaa' : (Math.random()<0.5? 'wookiey dookiey':'bunny'), size: rand(16,38) });
+			}, 900);
+
+			// interactive light: create a transient radial light using CSS variables
+			let pointerLight = null;
+
+			function setLight(x,y){
+				if(!pointerLight){
+					pointerLight = document.createElement('div');
+					pointerLight.style.position = 'fixed';
+					pointerLight.style.pointerEvents = 'none';
+					pointerLight.style.width = '300px';
+					pointerLight.style.height = '300px';
+					pointerLight.style.borderRadius = '50%';
+					pointerLight.style.background = 'radial-gradient(circle at 40% 30%, rgba(120,210,255,0.25), rgba(0,0,0,0))';
+					pointerLight.style.mixBlendMode = 'screen';
+					pointerLight.style.transform = 'translate(-50%,-50%)';
+					pointerLight.style.left = x + 'px';
+					pointerLight.style.top = y + 'px';
+					pointerLight.style.transition = 'left .12s, top .12s, opacity .25s';
+					pointerLight.style.opacity = '1';
+					document.body.appendChild(pointerLight);
+				} else {
+					pointerLight.style.left = x + 'px';
+					pointerLight.style.top = y + 'px';
+				}
+			}
+
+			function removeLight(){ if(pointerLight){ pointerLight.style.opacity = '0'; setTimeout(()=>{ pointerLight && pointerLight.remove(); pointerLight=null }, 300) } }
+
+			window.addEventListener('mousemove', (e)=> setLight(e.clientX, e.clientY));
+			window.addEventListener('touchmove', (e)=> { const t=e.touches[0]; if(t) setLight(t.clientX,t.clientY) }, {passive:true});
+			window.addEventListener('mouseout', removeLight);
+			window.addEventListener('touchend', removeLight);
+
+			// click/tap to spawn a special Javzaa drop at pointer
+			window.addEventListener('click', (e)=>{
+				const x = e.clientX / window.innerWidth * 100;
+				createDrop(null, { text: 'Javzaa', left: x, size: 40 });
+			});
+
+			// --- drag to pan the rain container horizontally ---
+			let isDragging = false;
+			let dragStartX = 0;
+			let currentOffset = 0; // pixels
+			let liveOffset = 0;
+
+			function startDrag(x){ isDragging = true; dragStartX = x; document.body.style.cursor = 'grabbing'; }
+			function moveDrag(x){ if(!isDragging) return; liveOffset = currentOffset + (x - dragStartX); container.style.transform = `translateX(${liveOffset}px)`; }
+			function endDrag(){ isDragging = false; currentOffset = liveOffset; document.body.style.cursor = ''; }
+
+			window.addEventListener('mousedown', (e)=> startDrag(e.clientX));
+			window.addEventListener('mousemove', (e)=> moveDrag(e.clientX));
+			window.addEventListener('mouseup', endDrag);
+
+			window.addEventListener('touchstart', (e)=>{ if(e.touches && e.touches[0]) startDrag(e.touches[0].clientX); }, {passive:true});
+			window.addEventListener('touchmove', (e)=>{ if(e.touches && e.touches[0]){ moveDrag(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
+			window.addEventListener('touchend', endDrag);
+
+			// accessibility: reduce motion if user prefers
+			const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+			if(reduce){
+				drops.forEach((el,i)=>{
+					el.getAnimations().forEach(a=>a.pause());
+					el.style.opacity = 1;
+					el.style.transition = 'transform 1s linear, opacity .5s';
+					el.style.transform = `translateY(${(i%10)*8}px)`;
+				});
+			}
+
+		</script>
+	</body>
+</html>
