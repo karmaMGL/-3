@@ -24,12 +24,20 @@
         position: relative;
       }
 
+      .fireworks-canvas {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 1;
+      }
+
       .container {
         position: fixed;
         inset: 0;
         overflow: hidden;
         transform-style: preserve-3d;
         perspective: 1000px;
+        z-index: 2;
       }
 
       .falling-item {
@@ -48,8 +56,6 @@
           0 0 30px rgba(255, 180, 240, 0.4),
           inset 0 0 20px rgba(255, 255, 255, 0.1);
         filter: brightness(1.1) contrast(1.05);
-        /* -webkit-mask-image: radial-gradient(circle at center, black 60%, transparent 100%); */
-        /* mask-image: radial-gradient(circle at center, black 60%, transparent 100%); */
       }
 
       .falling-text {
@@ -92,14 +98,12 @@
         max-width: 320px;
       }
 
-      /* Collapsible controls: hidden state and toggle button styles */
       .controls.hidden {
         transform: translateX(-120%);
         opacity: 0;
         pointer-events: none;
       }
 
-      /* Make toggle visually similar to the big action buttons (clear all) */
       #toggleControls {
         background: linear-gradient(135deg, #ff6b9a, #ff3d7f);
         color: white;
@@ -113,7 +117,7 @@
       }
 
       #showControls {
-        display: none; /* shown when controls are hidden via adjacent selector below */
+        display: none;
         position: fixed;
         top: 20px;
         left: 20px;
@@ -127,12 +131,10 @@
         cursor: pointer;
       }
 
-      /* When the .controls element has the .hidden class and the show button is adjacent, display it */
       .controls.hidden + #showControls {
         display: block;
       }
 
-      /* Smooth transitions for show/hide */
       .controls,
       #showControls {
         transition: transform 0.28s ease, opacity 0.28s ease;
@@ -221,11 +223,11 @@
     </style>
   </head>
   <body>
+    <canvas class="fireworks-canvas" id="fireworks"></canvas>
     <div class="container" id="container"></div>
 
     <div class="controls">
       <h3>✨ Image Rain Controls</h3>
-      <!-- Big, clear toggle button translated to Mongolian -->
 
       <div class="control-group">
         <label>Add Image URLs (one per line):</label>
@@ -253,7 +255,7 @@ https://cdn.fbsbx.com/v/t59.2708-21/469756378_1637167893840450_93350378515820119
 https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421846_n.webp?_nc_cat=103&ccb=1-7&_nc_sid=de7c13&_nc_ohc=wDKbKdMWBOMQ7kNvwEK_zj3&_nc_oc=AdmAdKOPkD6-I6o1B_ZQdZeHO4VZ-UGMQvcOmQFs_V-pyQaGsX9p_2aaDWS6ahzoGpU&_nc_zt=7&_nc_ht=cdn.fbsbx.com&_nc_gid=QljHFwmomozEsiwxjRkCqw&oh=03_Q7cD3wG0BeE5dxYtqEUg8W4HCZSlDpTbvJ7fJ3V9B2eSQPDB-g&oe=690E72A3
 </textarea
         >
-        <div class="image-list" id="imageCount">3 images loaded</div>
+        <div class="image-list" id="imageCount">8 images loaded</div>
       </div>
 
       <div class="control-group">
@@ -268,6 +270,21 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
           max="20"
           value="1"
           step="1"
+        />
+      </div>
+
+      <div class="control-group">
+        <label
+          >Салют хурд:
+          <span class="value-display" id="fireworkSpeedValue">1500</span>ms</label
+        >
+        <input
+          type="range"
+          id="fireworkSpeed"
+          min="500"
+          max="4000"
+          value="1500"
+          step="100"
         />
       </div>
 
@@ -309,19 +326,259 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
       </div>
     </div>
 
-    <div class="note">💗 Images with words • Rotating as they fall 💗</div>
+    <div class="note">💗 Images with words • Heart fireworks 💗</div>
 
-    <!-- Floating show button (appears only when controls are collapsed) -->
     <button id="showControls" aria-hidden="true" title="Контролуудыг харуулах">
       Контролуудыг харуулах
     </button>
 
     <script>
+      // Fireworks setup with heart shapes
+      const fireworksCanvas = document.getElementById("fireworks");
+      const fireworksCtx = fireworksCanvas.getContext("2d");
+      fireworksCanvas.width = window.innerWidth;
+      fireworksCanvas.height = window.innerHeight;
+
+      window.addEventListener("resize", () => {
+        fireworksCanvas.width = window.innerWidth;
+        fireworksCanvas.height = window.innerHeight;
+      });
+
+      const fireworks = [];
+      const particles = [];
+
+      // Heart shape patterns
+      function getHeartPattern(scale = 1) {
+        const points = [];
+        for (let t = 0; t < Math.PI * 2; t += 0.1) {
+          const x = 16 * Math.pow(Math.sin(t), 3) * scale;
+          const y =
+            -(
+              13 * Math.cos(t) -
+              5 * Math.cos(2 * t) -
+              2 * Math.cos(3 * t) -
+              Math.cos(4 * t)
+            ) * scale;
+          points.push({ x, y });
+        }
+        return points;
+      }
+
+      // Star pattern
+      function getStarPattern(scale = 1) {
+        const points = [];
+        const spikes = 5;
+        for (let i = 0; i < spikes * 2; i++) {
+          const angle = (i * Math.PI) / spikes;
+          const radius = i % 2 === 0 ? 20 * scale : 10 * scale;
+          points.push({
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+          });
+        }
+        return points;
+      }
+
+      // Circle burst
+      function getCirclePattern(scale = 1) {
+        const points = [];
+        for (let i = 0; i < 60; i++) {
+          const angle = (i * Math.PI * 2) / 60;
+          points.push({
+            x: Math.cos(angle) * 15 * scale,
+            y: Math.sin(angle) * 15 * scale,
+          });
+        }
+        return points;
+      }
+
+      // Spiral pattern
+      function getSpiralPattern(scale = 1) {
+        const points = [];
+        for (let i = 0; i < 50; i++) {
+          const angle = (i * Math.PI) / 8;
+          const radius = i * 0.5 * scale;
+          points.push({
+            x: Math.cos(angle) * radius,
+            y: Math.sin(angle) * radius,
+          });
+        }
+        return points;
+      }
+
+      // Ring pattern
+      function getRingPattern(scale = 1) {
+        const points = [];
+        const rings = 3;
+        for (let r = 0; r < rings; r++) {
+          const radius = (r + 1) * 8 * scale;
+          const count = 20 + r * 10;
+          for (let i = 0; i < count; i++) {
+            const angle = (i * Math.PI * 2) / count;
+            points.push({
+              x: Math.cos(angle) * radius,
+              y: Math.sin(angle) * radius,
+            });
+          }
+        }
+        return points;
+      }
+
+      const patterns = [
+        getHeartPattern,
+        getStarPattern,
+        getCirclePattern,
+        getSpiralPattern,
+        getRingPattern,
+      ];
+
+      class Firework {
+        constructor() {
+          this.x = Math.random() * fireworksCanvas.width;
+          this.y = fireworksCanvas.height;
+          this.targetY = Math.random() * fireworksCanvas.height * 0.4 + 50;
+          this.speed = Math.random() * 3 + 3;
+          this.color = `hsl(${Math.random() * 360}, 100%, 65%)`;
+          this.trail = [];
+        }
+
+        update() {
+          this.trail.push({ x: this.x, y: this.y });
+          if (this.trail.length > 10) this.trail.shift();
+          this.y -= this.speed;
+          return this.y <= this.targetY;
+        }
+
+        draw() {
+          fireworksCtx.save();
+          for (let i = 0; i < this.trail.length; i++) {
+            const t = this.trail[i];
+            fireworksCtx.globalAlpha = i / this.trail.length;
+            fireworksCtx.fillStyle = this.color;
+            fireworksCtx.beginPath();
+            fireworksCtx.arc(t.x, t.y, 2, 0, Math.PI * 2);
+            fireworksCtx.fill();
+          }
+          fireworksCtx.restore();
+
+          fireworksCtx.fillStyle = this.color;
+          fireworksCtx.beginPath();
+          fireworksCtx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+          fireworksCtx.fill();
+        }
+      }
+
+      class Particle {
+        constructor(x, y, color, vx, vy) {
+          this.x = x;
+          this.y = y;
+          this.color = color;
+          this.vx = vx;
+          this.vy = vy;
+          this.life = 1;
+          this.decay = Math.random() * 0.015 + 0.01;
+          this.size = Math.random() * 3 + 1.5;
+          this.gravity = 0.08;
+        }
+
+        update() {
+          this.vx *= 0.97;
+          this.vy *= 0.97;
+          this.vy += this.gravity;
+          this.x += this.vx;
+          this.y += this.vy;
+          this.life -= this.decay;
+          return this.life > 0;
+        }
+
+        draw() {
+          fireworksCtx.save();
+          fireworksCtx.globalAlpha = this.life;
+          fireworksCtx.fillStyle = this.color;
+          fireworksCtx.shadowBlur = 10;
+          fireworksCtx.shadowColor = this.color;
+          fireworksCtx.beginPath();
+          fireworksCtx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+          fireworksCtx.fill();
+          fireworksCtx.restore();
+        }
+      }
+
+      function explode(x, y, color) {
+        // Random pattern selection
+        const patternFunc = patterns[Math.floor(Math.random() * patterns.length)];
+        const scale = Math.random() * 0.8 + 0.8;
+        const pattern = patternFunc(scale);
+
+        // Create particles along the pattern
+        pattern.forEach((point) => {
+          const speed = Math.random() * 2 + 2;
+          const vx = (point.x / 15) * speed;
+          const vy = (point.y / 15) * speed;
+          particles.push(new Particle(x, y, color, vx, vy));
+        });
+
+        // Add some random sparkles
+        for (let i = 0; i < 30; i++) {
+          const angle = Math.random() * Math.PI * 2;
+          const speed = Math.random() * 4 + 1;
+          const vx = Math.cos(angle) * speed;
+          const vy = Math.sin(angle) * speed;
+          particles.push(new Particle(x, y, color, vx, vy));
+        }
+      }
+
+      function animateFireworks() {
+        fireworksCtx.fillStyle = "rgba(10, 0, 21, 0.15)";
+        fireworksCtx.fillRect(
+          0,
+          0,
+          fireworksCanvas.width,
+          fireworksCanvas.height
+        );
+
+        for (let i = fireworks.length - 1; i >= 0; i--) {
+          const fw = fireworks[i];
+          const exploded = fw.update();
+          fw.draw();
+
+          if (exploded) {
+            explode(fw.x, fw.y, fw.color);
+            fireworks.splice(i, 1);
+          }
+        }
+
+        for (let i = particles.length - 1; i >= 0; i--) {
+          const p = particles[i];
+          const alive = p.update();
+          p.draw();
+
+          if (!alive) {
+            particles.splice(i, 1);
+          }
+        }
+
+        requestAnimationFrame(animateFireworks);
+      }
+
+      let fireworkInterval;
+      function startFireworks(interval = 1500) {
+        if (fireworkInterval) clearInterval(fireworkInterval);
+        fireworkInterval = setInterval(() => {
+          fireworks.push(new Firework());
+        }, interval);
+      }
+
+      animateFireworks();
+      startFireworks();
+
+      // Main falling images script
       const container = document.getElementById("container");
       const imageUrlsInput = document.getElementById("imageUrls");
       const rotationSpeedInput = document.getElementById("rotationSpeed");
       const fallSpeedInput = document.getElementById("fallSpeed");
       const spawnRateInput = document.getElementById("spawnRate");
+      const fireworkSpeedInput = document.getElementById("fireworkSpeed");
       const clearAllBtn = document.getElementById("clearAll");
 
       const words = [
@@ -456,6 +713,12 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
         startSpawning();
       });
 
+      fireworkSpeedInput.addEventListener("input", (e) => {
+        document.getElementById("fireworkSpeedValue").textContent =
+          e.target.value + "ms";
+        startFireworks(parseInt(e.target.value));
+      });
+
       imageUrlsInput.addEventListener("input", updateImageUrls);
 
       clearAllBtn.addEventListener("click", () => {
@@ -465,7 +728,7 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
       // Initialize
       updateImageUrls();
 
-      // Set default spawn rate depending on device (mobile slower default)
+      // Set default spawn rate depending on device
       (function () {
         const isMobile =
           /Mobi|Android|iP(ad|hone|od)|IEMobile|Opera Mini/i.test(
@@ -485,7 +748,7 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
         setTimeout(createFallingItem, i * 200);
       }
 
-      // Collapsible controls: wire up toggle and keyboard shortcut
+      // Collapsible controls
       (function () {
         const controls = document.querySelector(".controls");
         const toggleBtn = document.getElementById("toggleControls");
@@ -496,7 +759,6 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
         function hideControls() {
           controls.classList.add("hidden");
           toggleBtn.setAttribute("aria-expanded", "false");
-          // keep showBtn accessible
           showBtn.setAttribute("aria-hidden", "false");
         }
 
@@ -506,16 +768,13 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
           showBtn.setAttribute("aria-hidden", "true");
         }
 
-        // toggle on click
         toggleBtn.addEventListener("click", () => {
           if (controls.classList.contains("hidden")) showControls();
           else hideControls();
         });
 
-        // show button restores controls
         showBtn.addEventListener("click", showControls);
 
-        // keyboard shortcut: press 'c' to toggle controls (ignore when typing)
         document.addEventListener("keydown", (e) => {
           const tag = document.activeElement && document.activeElement.tagName;
           if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
