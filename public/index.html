@@ -1,209 +1,420 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Raining Words — Glow</title>
+    <title>Falling Images - Javzaa</title>
     <style>
-      /* Reset + dark background */
-      html,body{height:100%;margin:0}
-      body{
-        background: radial-gradient(ellipse at center, #0b0b0d 0%, #050506 60%, #000000 100%);
-        color:#fff;overflow:hidden;font-family:system-ui,Segoe UI,Roboto,Helvetica,Arial;
-        display:flex;align-items:center;justify-content:center;
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
       }
 
-      /* container holds the falling items */
-      .rain-container{
-        position:relative;width:100%;height:100%;pointer-events:none;will-change:transform;touch-action:pan-y;
+      body {
+        min-height: 100vh;
+        background: linear-gradient(
+          135deg,
+          #0a0015 0%,
+          #1a0520 50%,
+          #0f0820 100%
+        );
+        overflow: hidden;
+        font-family: system-ui, -apple-system, sans-serif;
+        position: relative;
       }
 
-      .drop{
-        position:absolute;left:50%;top:-5%;transform:translateX(-50%);
-        white-space:nowrap;font-weight:700;font-size:20px;line-height:1;
-        text-shadow:0 0 6px rgba(255,255,255,0.06), 0 0 18px rgba(0,200,255,0.03);
-        opacity:0;filter:drop-shadow(0 0 12px rgba(0,200,255,0.12));
+      .container {
+        position: fixed;
+        inset: 0;
+        overflow: hidden;
+        transform-style: preserve-3d;
+        perspective: 1000px;
       }
 
-      /* image drop styling */
-      .drop-image img{display:block;width:36px;height:auto;pointer-events:none;filter:drop-shadow(0 0 14px rgba(255,255,255,0.08));}
+      .falling-item {
+        position: absolute;
+        pointer-events: none;
+        will-change: transform, opacity;
+      }
 
-      /* glowing style variants */
-      .glow-1{color:#9be7ff;text-shadow:0 0 6px #49d6ff,0 0 18px #1b9fff}
-      .glow-2{color:#ffd6f0;text-shadow:0 0 6px #ff9ad1,0 0 18px #ff5bb3}
-      .glow-3{color:#d0ffb8;text-shadow:0 0 6px #9cff73,0 0 20px #64ff2b}
+      .falling-item img {
+        display: block;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        border-radius: 12px;
+        box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6),
+          0 0 30px rgba(255, 180, 240, 0.4),
+          inset 0 0 20px rgba(255, 255, 255, 0.1);
+        filter: brightness(1.1) contrast(1.05);
+        /* -webkit-mask-image: radial-gradient(circle at center, black 60%, transparent 100%); */
+        /* mask-image: radial-gradient(circle at center, black 60%, transparent 100%); */
+      }
 
-      /* subtle vignette to emphasize darkness */
-      .vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 30%, rgba(0,0,0,0.6) 100%)}
+      .falling-text {
+        font-size: 28px;
+        font-weight: 700;
+        white-space: nowrap;
+        text-shadow: 0 0 10px currentColor, 0 0 20px currentColor,
+          0 0 30px rgba(255, 255, 255, 0.5);
+        filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.6));
+      }
 
-      /* small on-screen UI note */
-      .note{position:fixed;left:16px;bottom:14px;color:#7a7a7a;font-size:13px;pointer-events:auto}
+      .color-1 {
+        color: #ff6b9a;
+      }
+      .color-2 {
+        color: #9be7ff;
+      }
+      .color-3 {
+        color: #ffd6f0;
+      }
+      .color-4 {
+        color: #d0ffb8;
+      }
+      .color-5 {
+        color: #ffeb99;
+      }
+
+      .controls {
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        background: rgba(20, 10, 30, 0.85);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+        color: white;
+        z-index: 100;
+        max-width: 320px;
+      }
+
+      .controls h3 {
+        margin: 0 0 15px 0;
+        color: #ff6b9a;
+        font-size: 18px;
+      }
+
+      .control-group {
+        margin-bottom: 15px;
+      }
+
+      .control-group label {
+        display: block;
+        margin-bottom: 5px;
+        font-size: 13px;
+        color: #ccc;
+      }
+
+      .control-group input[type="text"] {
+        width: 100%;
+        padding: 8px 12px;
+        background: rgba(255, 255, 255, 0.1);
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        border-radius: 8px;
+        color: white;
+        font-size: 13px;
+        margin-bottom: 8px;
+      }
+
+      .control-group input[type="range"] {
+        width: 100%;
+      }
+
+      .control-group button {
+        width: 100%;
+        padding: 10px;
+        background: linear-gradient(135deg, #ff6b9a, #ff3d7f);
+        border: none;
+        border-radius: 8px;
+        color: white;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 14px;
+        transition: transform 0.2s, box-shadow 0.2s;
+        box-shadow: 0 4px 15px rgba(255, 107, 154, 0.4);
+      }
+
+      .control-group button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(255, 107, 154, 0.6);
+      }
+
+      .control-group button:active {
+        transform: translateY(0);
+      }
+
+      .image-list {
+        font-size: 12px;
+        color: #999;
+        margin-top: 8px;
+        max-height: 100px;
+        overflow-y: auto;
+      }
+
+      .value-display {
+        display: inline-block;
+        color: #ff6b9a;
+        font-weight: 600;
+        margin-left: 8px;
+      }
+
+      .note {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        color: #999;
+        font-size: 13px;
+        text-align: center;
+        text-shadow: 0 2px 8px rgba(0, 0, 0, 0.8);
+      }
     </style>
   </head>
   <body>
-    <div class="rain-container" id="rain"></div>
-    <div class="vignette"></div>
-    <div class="note">Raining words • emojis • click or move mouse to add light</div>
+    <div class="container" id="container"></div>
+
+    <div class="controls">
+      <h3>✨ Image Rain Controls</h3>
+
+      <div class="control-group">
+        <label>Add Image URLs (one per line):</label>
+        <textarea
+          id="imageUrls"
+          rows="4"
+          style="
+            width: 100%;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 8px;
+            color: white;
+            font-size: 12px;
+            font-family: monospace;
+          "
+        >
+https://scontent.fuln4-3.fna.fbcdn.net/v/t1.15752-9/576330062_3406245986218589_4284790831027519057_n.jpg?stp=dst-jpg_s2048x2048_tt6&_nc_cat=102&ccb=1-7&_nc_sid=0024fc&_nc_ohc=fwLzs_e9-S0Q7kNvwE_OCKq&_nc_oc=Adk34fiEKPyz4bHBYs0adTWEGkW_W23tjPTFt3OmnAPYqe8WGh4QY_yjRYxG0QdjzWo&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-3.fna&oh=03_Q7cD3wHh09mV_JJsftpvxlMFi9CXd97SS22AGmyNOHf61bIcAQ&oe=693427D7
+https://scontent.fuln4-3.fna.fbcdn.net/v/t1.15752-9/575108083_868246932438106_1628161125503317293_n.jpg?stp=dst-jpg_s480x480_tt6&_nc_cat=111&ccb=1-7&_nc_sid=0024fc&_nc_ohc=wEVMgpEwVYIQ7kNvwHpoSbv&_nc_oc=Adkj2msk8105Kx3xag_yoGOTAzHsxckywMDODa7nz2i-p-bFtYf3tmS-Zh-Exf4Azgc&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-3.fna&oh=03_Q7cD3wHa88_6pveq4WpIifIAhbBz_-Mn3QZTZvo1ueOQWLZHsg&oe=69342A17
+https://scontent.fuln4-2.fna.fbcdn.net/v/t1.15752-9/552142485_1547993452876785_2207031953596089731_n.jpg?stp=dst-jpg_s480x480_tt6&_nc_cat=106&ccb=1-7&_nc_sid=0024fc&_nc_ohc=J9giduE7yu0Q7kNvwFUQmsi&_nc_oc=Adkxvj1F0lIaWYGOnBUOpjHnQwyykzb_cWqhbdItBTbMRBKSxnkzRo5lkat0fSK3pq0&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-2.fna&oh=03_Q7cD3wFB1rMXhuJbbDss80Wm-IEBM0Dt8pdizqHVeN-YW00Erg&oe=693436E4
+https://scontent.fuln4-2.fna.fbcdn.net/v/t1.15752-9/553858143_1273487191194297_4359297680265047238_n.jpg?stp=dst-jpg_p480x480_tt6&_nc_cat=100&ccb=1-7&_nc_sid=0024fc&_nc_ohc=zGmQ-kokM7wQ7kNvwFR6ub4&_nc_oc=AdljM5C6v0QahhohDBI2ZN__xnKx82NAkgJ9_wMUIZGxPQ9eHK0twkPGPKsJBE5St_8&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-2.fna&oh=03_Q7cD3wGVCB81zKk-hNIjZu_n6pR5XMPeBDKoEir6ugGDRrX4ew&oe=69341C74
+https://scontent.fuln4-2.fna.fbcdn.net/v/t1.15752-9/566253377_819933770490767_6132602725186326096_n.jpg?stp=dst-jpg_s480x480_tt6&_nc_cat=104&ccb=1-7&_nc_sid=0024fc&_nc_ohc=s9pVfvVK68kQ7kNvwEU4BaU&_nc_oc=AdkRp0DNRLoRjqyaBoEnON3XwVkvMgkSeVf4B6jIgBcJblH1zePB1MHa5YUnBf6PDPE&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-2.fna&oh=03_Q7cD3wG8gs8mVCIfFf7wltbHqy4rYEfbGCCYiZaRwyYQjJGlDQ&oe=693415BB
+https://scontent.fuln4-2.fna.fbcdn.net/v/t1.15752-9/552587404_1497068814774702_1558183347314705650_n.jpg?stp=dst-jpg_s640x640_tt6&_nc_cat=104&ccb=1-7&_nc_sid=0024fc&_nc_ohc=SnzQIymivx4Q7kNvwEbCsrB&_nc_oc=AdnsAt4iTjv5d7TPoSl_kakFwFMxLsbZsxUdm9IppI_yMuUr_mLwcuNkNfVzBNQpICo&_nc_ad=z-m&_nc_cid=0&_nc_zt=23&_nc_ht=scontent.fuln4-2.fna&oh=03_Q7cD3wEnEFGBGvBoZFcG-xYid3MhIef9cMsi4aBbmwjcu5nBUw&oe=693422E6
+https://cdn.fbsbx.com/v/t59.2708-21/469756378_1637167893840450_933503785158201191_n.webp?_nc_cat=110&ccb=1-7&_nc_sid=de7c13&_nc_ohc=VnjPbMIkTVgQ7kNvwHsAEXA&_nc_oc=Adncm4X_vZmIU9PXNX_8rM_oP5p_BxzEmWJj8TCcUvZu3fucsQi23WuHPG_Q851QtEQ&_nc_zt=7&_nc_ht=cdn.fbsbx.com&_nc_gid=l0rdh9zcb71BO_pRsg10bQ&oh=03_Q7cD3wGXfjLnyEEdj9OEWMBoLWZvHgSDqWzevrUpa3L5wBZl_A&oe=690EA01F
+https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421846_n.webp?_nc_cat=103&ccb=1-7&_nc_sid=de7c13&_nc_ohc=wDKbKdMWBOMQ7kNvwEK_zj3&_nc_oc=AdmAdKOPkD6-I6o1B_ZQdZeHO4VZ-UGMQvcOmQFs_V-pyQaGsX9p_2aaDWS6ahzoGpU&_nc_zt=7&_nc_ht=cdn.fbsbx.com&_nc_gid=QljHFwmomozEsiwxjRkCqw&oh=03_Q7cD3wG0BeE5dxYtqEUg8W4HCZSlDpTbvJ7fJ3V9B2eSQPDB-g&oe=690E72A3
+</textarea
+        >
+        <div class="image-list" id="imageCount">3 images loaded</div>
+      </div>
+
+      <div class="control-group">
+        <label
+          >Эргэлтийн хурд:
+          <span class="value-display" id="rotationValue">1</span></label
+        >
+        <input
+          type="range"
+          id="rotationSpeed"
+          min="0"
+          max="20"
+          value="1"
+          step="1"
+        />
+      </div>
+
+      <div class="control-group">
+        <label
+          >Уналтын хурд:
+          <span class="value-display" id="fallSpeedValue">7</span>s</label
+        >
+        <input
+          type="range"
+          id="fallSpeed"
+          min="3"
+          max="15"
+          value="7"
+          step="0.5"
+        />
+      </div>
+
+      <div class="control-group">
+        <label
+          >Үржлийн хурд:
+          <span class="value-display" id="spawnRateValue">400</span>ms</label
+        >
+        <input
+          type="range"
+          id="spawnRate"
+          min="300"
+          max="2000"
+          value="400"
+          step="100"
+        />
+      </div>
+
+      <div class="control-group">
+        <button id="clearAll">Clear All ✨</button>
+      </div>
+    </div>
+
+    <div class="note">💗 Images with words • Rotating as they fall 💗</div>
 
     <script>
-      // Lightweight raining words + emojis with glow. Responsive and performant.
-      // custom words, nicknames and cute phrases
+      const container = document.getElementById("container");
+      const imageUrlsInput = document.getElementById("imageUrls");
+      const rotationSpeedInput = document.getElementById("rotationSpeed");
+      const fallSpeedInput = document.getElementById("fallSpeed");
+      const spawnRateInput = document.getElementById("spawnRate");
+      const clearAllBtn = document.getElementById("clearAll");
+
       const words = [
-        'Javzaa💗', 'wookiey dookiey✨', 'bunny🐰', 'gunj👸', 'wookiey💗', 'dookiey💗', 'cutie', 'sweetie', 'floof', 'snuggle',
-        'Baby girl', '✨Gunjee', 'cutie', 'rain', 'glow', 'spark', '😚', '🫧', '💗'
+        "Javzaa💗",
+        "wookiey dookiey✨",
+        "bunny🐰",
+        "gunj👸",
+        "wookiey💗",
+        "dookiey💗",
+        "cutie",
+        "sweetie",
+        "Baby girl",
+        "✨Gunjee",
+        "usaa uusanuu? 💧",
+        "💗",
+        "💓",
+        "✨",
+        "🫧",
       ];
 
-      // small inline SVG images (data URLs) to use as occasional image drops
-      const images = [
-        // simple heart
-        'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24"><path fill="%23ff6b9a" d="M12 21s-7-4.44-9-7.35C-0.09 10.44 3 6 6.5 6 8.24 6 9.5 7 10 8c.5-1 1.76-2 3.5-2C17 6 20.09 10.44 21 13.65 19 16.56 12 21 12 21z"/></svg>'),
-        // small bunny face
-        'data:image/svg+xml;utf8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 24 24"><g fill="%23fff"><path d="M7 3c-.55 0-1 .45-1 1v3h2V4c0-.55-.45-1-1-1zM18 3c-.55 0-1 .45-1 1v3h2V4c0-.55-.45-1-1-1z" fill="%23fff"/><circle cx="9.5" cy="13" r="1.25" fill="%23000"/><circle cx="14.5" cy="13" r="1.25" fill="%23000"/><path d="M12 17c-1.5 0-2.5-1.5-2.5-3h5c0 1.5-1 3-2.5 3z" fill="%23ffb6c1"/></g></svg>')
-      ];
+      let imageUrls = [];
+      let rotationSpeed = 1;
+      let fallSpeed = 7;
+      let spawnInterval;
 
-      // helper to ensure numeric size for images
-      function pickSize(opts){ return (opts && opts.size) || rand(18,44); }
+      function updateImageUrls() {
+        const text = imageUrlsInput.value.trim();
+        imageUrls = text.split("\n").filter((url) => url.trim().length > 0);
+        document.getElementById("imageCount").textContent = `${
+          imageUrls.length
+        } image${imageUrls.length !== 1 ? "s" : ""} loaded`;
+      }
 
-      const container = document.getElementById('rain');
-      const maxDrops = 60; // keep low for performance
+      function rand(min, max) {
+        return Math.random() * (max - min) + min;
+      }
 
-      // generate initial drops
-      const drops = [];
+      function createFallingItem() {
+        const item = document.createElement("div");
+        item.className = "falling-item";
 
-      function rand(min, max){ return Math.random() * (max - min) + min }
+        const isImage = imageUrls.length > 0 && Math.random() < 0.6;
+        const size = isImage ? rand(60, 120) : rand(24, 48);
 
-      function createDrop(i, opts = {}){
-        // opts: {type:'text'|'image', text, img}
-        const type = opts.type || 'text';
-        const el = document.createElement('div');
-        el.className = 'drop';
-        el.classList.add('glow-' + (1 + Math.floor(Math.random()*3)));
-        el.style.left = (opts.left !== undefined ? opts.left : rand(0,100)) + '%';
-        el.style.fontSize = (opts.size || rand(14, 36)) + 'px';
-        el.style.opacity = 0;
+        item.style.width = size + "px";
+        item.style.height = size + "px";
+        item.style.left = rand(0, window.innerWidth - size) + "px";
+        item.style.top = "-" + (size + 20) + "px";
 
-        if(type === 'image'){
-          const src = opts.img || images[Math.floor(Math.random()*images.length)];
-          el.innerHTML = `<img src="${src}" alt="img"/>`;
-          el.classList.add('drop-image');
-          // size image element explicitly
-          const img = el.querySelector('img');
-          const s = pickSize(opts);
-          img.style.width = s + 'px';
-          img.style.height = 'auto';
-          el.style.width = img.style.width;
-          el.style.height = img.style.height;
+        if (isImage) {
+          const img = document.createElement("img");
+          const url = imageUrls[Math.floor(Math.random() * imageUrls.length)];
+          img.src = url;
+          img.alt = "falling";
+          img.onerror = function () {
+            item.innerHTML = '<div class="falling-text">💗</div>';
+          };
+          item.appendChild(img);
         } else {
-          const text = opts.text || words[Math.floor(Math.random()*words.length)];
-          el.textContent = text;
+          const text = document.createElement("div");
+          text.className = "falling-text color-" + Math.floor(rand(1, 6));
+          text.textContent = words[Math.floor(Math.random() * words.length)];
+          text.style.fontSize = size + "px";
+          item.appendChild(text);
         }
 
-        // animation parameters
-        const duration = rand(3500, 9000);
-        const delay = rand(0, 3000);
-        const tilt = rand(-25,25);
-        const xDrift = rand(-30,30);
+        container.appendChild(item);
 
-        el.animate([
-          { transform: `translate3d(${xDrift}px, -10vh, 0) rotate(${tilt}deg)`, opacity: 0 },
-          { transform: `translate3d(${xDrift/2}px, 40vh, 0) rotate(${tilt/2}deg)`, opacity: 1 },
-          { transform: `translate3d(${xDrift}px, 110vh, 0) rotate(${tilt/4}deg)`, opacity: 0 }
-        ], { duration, delay, iterations: Infinity, easing: 'cubic-bezier(.2,.8,.2,1)' });
+        const duration = fallSpeed * 1000;
+        const rotation = rand(-360 * rotationSpeed, 360 * rotationSpeed);
+        const xDrift = rand(-100, 100);
 
-        // slight glow pulse
-        el.animate([
-          { filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.04))' },
-          { filter: 'drop-shadow(0 0 18px rgba(255,255,255,0.12))' },
-          { filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.04))' }
-        ], { duration: rand(2000,4000), delay, iterations: Infinity });
+        const animation = item.animate(
+          [
+            {
+              transform: `translate(0, 0) rotate(0deg)`,
+              opacity: 0,
+            },
+            {
+              transform: `translate(${xDrift * 0.3}px, ${
+                window.innerHeight * 0.3
+              }px) rotate(${rotation * 0.3}deg)`,
+              opacity: 1,
+              offset: 0.1,
+            },
+            {
+              transform: `translate(${xDrift * 0.6}px, ${
+                window.innerHeight * 0.6
+              }px) rotate(${rotation * 0.6}deg)`,
+              opacity: 1,
+              offset: 0.5,
+            },
+            {
+              transform: `translate(${xDrift}px, ${
+                window.innerHeight + 100
+              }px) rotate(${rotation}deg)`,
+              opacity: 0,
+            },
+          ],
+          {
+            duration: duration,
+            easing: "cubic-bezier(0.25, 0.46, 0.45, 0.94)",
+            fill: "forwards",
+          }
+        );
 
-        container.appendChild(el);
-
-        drops.push(el);
+        animation.onfinish = () => item.remove();
       }
 
-      for(let i=0;i<maxDrops;i++) createDrop(i);
-
-      // spawn a few initial image drops so you see images immediately
-      for(let i=0;i<6;i++){
-        if(Math.random() < 0.7) createDrop(null, { type: 'image', size: rand(20,44), left: rand(5,95) });
+      function startSpawning() {
+        if (spawnInterval) clearInterval(spawnInterval);
+        spawnInterval = setInterval(
+          createFallingItem,
+          parseInt(spawnRateInput.value)
+        );
       }
 
-      // occasionally create image drops and more personalized Javzaa drops
-      setInterval(()=>{
-        // spawn an image drop (raise chance slightly)
-        if(Math.random() < 0.22) createDrop(null, { type: 'image', size: rand(18,44) });
-        // spawn a Javzaa / nicknames drop occasionally
-        if(Math.random() < 0.2) createDrop(null, { text: Math.random() < 0.5 ? 'Javzaa' : (Math.random()<0.5? 'wookiey dookiey':'bunny'), size: rand(16,38) });
-      }, 900);
-
-      // interactive light: create a transient radial light using CSS variables
-      let pointerLight = null;
-
-      function setLight(x,y){
-        if(!pointerLight){
-          pointerLight = document.createElement('div');
-          pointerLight.style.position = 'fixed';
-          pointerLight.style.pointerEvents = 'none';
-          pointerLight.style.width = '300px';
-          pointerLight.style.height = '300px';
-          pointerLight.style.borderRadius = '50%';
-          pointerLight.style.background = 'radial-gradient(circle at 40% 30%, rgba(120,210,255,0.25), rgba(0,0,0,0))';
-          pointerLight.style.mixBlendMode = 'screen';
-          pointerLight.style.transform = 'translate(-50%,-50%)';
-          pointerLight.style.left = x + 'px';
-          pointerLight.style.top = y + 'px';
-          pointerLight.style.transition = 'left .12s, top .12s, opacity .25s';
-          pointerLight.style.opacity = '1';
-          document.body.appendChild(pointerLight);
-        } else {
-          pointerLight.style.left = x + 'px';
-          pointerLight.style.top = y + 'px';
-        }
-      }
-
-      function removeLight(){ if(pointerLight){ pointerLight.style.opacity = '0'; setTimeout(()=>{ pointerLight && pointerLight.remove(); pointerLight=null }, 300) } }
-
-      window.addEventListener('mousemove', (e)=> setLight(e.clientX, e.clientY));
-      window.addEventListener('touchmove', (e)=> { const t=e.touches[0]; if(t) setLight(t.clientX,t.clientY) }, {passive:true});
-      window.addEventListener('mouseout', removeLight);
-      window.addEventListener('touchend', removeLight);
-
-      // click/tap to spawn a special Javzaa drop at pointer
-      window.addEventListener('click', (e)=>{
-        const x = e.clientX / window.innerWidth * 100;
-        createDrop(null, { text: 'Javzaa', left: x, size: 40 });
+      // Update displays and values
+      rotationSpeedInput.addEventListener("input", (e) => {
+        rotationSpeed = parseInt(e.target.value);
+        document.getElementById("rotationValue").textContent = rotationSpeed;
       });
 
-      // --- drag to pan the rain container horizontally ---
-      let isDragging = false;
-      let dragStartX = 0;
-      let currentOffset = 0; // pixels
-      let liveOffset = 0;
+      fallSpeedInput.addEventListener("input", (e) => {
+        fallSpeed = parseFloat(e.target.value);
+        document.getElementById("fallSpeedValue").textContent = fallSpeed + "s";
+      });
 
-      function startDrag(x){ isDragging = true; dragStartX = x; document.body.style.cursor = 'grabbing'; }
-      function moveDrag(x){ if(!isDragging) return; liveOffset = currentOffset + (x - dragStartX); container.style.transform = `translateX(${liveOffset}px)`; }
-      function endDrag(){ isDragging = false; currentOffset = liveOffset; document.body.style.cursor = ''; }
+      spawnRateInput.addEventListener("input", (e) => {
+        document.getElementById("spawnRateValue").textContent =
+          e.target.value + "ms";
+        startSpawning();
+      });
 
-      window.addEventListener('mousedown', (e)=> startDrag(e.clientX));
-      window.addEventListener('mousemove', (e)=> moveDrag(e.clientX));
-      window.addEventListener('mouseup', endDrag);
+      imageUrlsInput.addEventListener("input", updateImageUrls);
 
-      window.addEventListener('touchstart', (e)=>{ if(e.touches && e.touches[0]) startDrag(e.touches[0].clientX); }, {passive:true});
-      window.addEventListener('touchmove', (e)=>{ if(e.touches && e.touches[0]){ moveDrag(e.touches[0].clientX); e.preventDefault(); } }, {passive:false});
-      window.addEventListener('touchend', endDrag);
+      clearAllBtn.addEventListener("click", () => {
+        container.innerHTML = "";
+      });
 
-      // accessibility: reduce motion if user prefers
-      const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
-      if(reduce){
-        drops.forEach((el,i)=>{
-          el.getAnimations().forEach(a=>a.pause());
-          el.style.opacity = 1;
-          el.style.transition = 'transform 1s linear, opacity .5s';
-          el.style.transform = `translateY(${(i%10)*8}px)`;
-        });
+      // Initialize
+      updateImageUrls();
+      startSpawning();
+
+      // Create initial items
+      for (let i = 0; i < 15; i++) {
+        setTimeout(createFallingItem, i * 200);
       }
-
     </script>
   </body>
 </html>
