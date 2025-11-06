@@ -92,6 +92,52 @@
         max-width: 320px;
       }
 
+      /* Collapsible controls: hidden state and toggle button styles */
+      .controls.hidden {
+        transform: translateX(-120%);
+        opacity: 0;
+        pointer-events: none;
+      }
+
+      /* Make toggle visually similar to the big action buttons (clear all) */
+      #toggleControls {
+        background: linear-gradient(135deg, #ff6b9a, #ff3d7f);
+        color: white;
+        border: none;
+        padding: 10px 12px;
+        border-radius: 8px;
+        cursor: pointer;
+        font-size: 14px;
+        box-shadow: 0 4px 15px rgba(255, 107, 154, 0.4);
+        font-weight: 700;
+      }
+
+      #showControls {
+        display: none; /* shown when controls are hidden via adjacent selector below */
+        position: fixed;
+        top: 20px;
+        left: 20px;
+        z-index: 110;
+        background: linear-gradient(135deg, #ff6b9a, #ff3d7f);
+        color: white;
+        border: none;
+        padding: 10px 12px;
+        border-radius: 12px;
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.4);
+        cursor: pointer;
+      }
+
+      /* When the .controls element has the .hidden class and the show button is adjacent, display it */
+      .controls.hidden + #showControls {
+        display: block;
+      }
+
+      /* Smooth transitions for show/hide */
+      .controls,
+      #showControls {
+        transition: transform 0.28s ease, opacity 0.28s ease;
+      }
+
       .controls h3 {
         margin: 0 0 15px 0;
         color: #ff6b9a;
@@ -179,6 +225,7 @@
 
     <div class="controls">
       <h3>✨ Image Rain Controls</h3>
+      <!-- Big, clear toggle button translated to Mongolian -->
 
       <div class="control-group">
         <label>Add Image URLs (one per line):</label>
@@ -255,11 +302,19 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
       </div>
 
       <div class="control-group">
-        <button id="clearAll">Clear All ✨</button>
+        <button id="clearAll">Бүгдийг арилгах ✨</button>
+      </div>
+      <div class="control-group">
+        <button id="toggleControls" title="Нуух" aria-label="Нуух">Нуух</button>
       </div>
     </div>
 
     <div class="note">💗 Images with words • Rotating as they fall 💗</div>
+
+    <!-- Floating show button (appears only when controls are collapsed) -->
+    <button id="showControls" aria-hidden="true" title="Контролуудыг харуулах">
+      Контролуудыг харуулах
+    </button>
 
     <script>
       const container = document.getElementById("container");
@@ -409,12 +464,67 @@ https://cdn.fbsbx.com/v/t59.2708-21/515373905_23921091434208923_4884872469363421
 
       // Initialize
       updateImageUrls();
+
+      // Set default spawn rate depending on device (mobile slower default)
+      (function () {
+        const isMobile =
+          /Mobi|Android|iP(ad|hone|od)|IEMobile|Opera Mini/i.test(
+            navigator.userAgent
+          ) ||
+          (window.matchMedia && window.matchMedia("(pointer:coarse)").matches);
+        const defaultSpawn = isMobile ? 1200 : 400;
+        spawnRateInput.value = defaultSpawn;
+        document.getElementById("spawnRateValue").textContent =
+          defaultSpawn + "ms";
+      })();
+
       startSpawning();
 
       // Create initial items
       for (let i = 0; i < 15; i++) {
         setTimeout(createFallingItem, i * 200);
       }
+
+      // Collapsible controls: wire up toggle and keyboard shortcut
+      (function () {
+        const controls = document.querySelector(".controls");
+        const toggleBtn = document.getElementById("toggleControls");
+        const showBtn = document.getElementById("showControls");
+
+        if (!controls || !toggleBtn || !showBtn) return;
+
+        function hideControls() {
+          controls.classList.add("hidden");
+          toggleBtn.setAttribute("aria-expanded", "false");
+          // keep showBtn accessible
+          showBtn.setAttribute("aria-hidden", "false");
+        }
+
+        function showControls() {
+          controls.classList.remove("hidden");
+          toggleBtn.setAttribute("aria-expanded", "true");
+          showBtn.setAttribute("aria-hidden", "true");
+        }
+
+        // toggle on click
+        toggleBtn.addEventListener("click", () => {
+          if (controls.classList.contains("hidden")) showControls();
+          else hideControls();
+        });
+
+        // show button restores controls
+        showBtn.addEventListener("click", showControls);
+
+        // keyboard shortcut: press 'c' to toggle controls (ignore when typing)
+        document.addEventListener("keydown", (e) => {
+          const tag = document.activeElement && document.activeElement.tagName;
+          if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+          if (e.key && e.key.toLowerCase() === "c") {
+            if (controls.classList.contains("hidden")) showControls();
+            else hideControls();
+          }
+        });
+      })();
     </script>
   </body>
 </html>
